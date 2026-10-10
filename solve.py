@@ -1,14 +1,16 @@
-"""Say "hey robot check this text": the camera photographs the writing and Gemini finds the mistakes.
+"""Redline - the robot that marks your paper.
 
-A little proofreader: hold a page, whiteboard, or screen under the camera, and the robot reads it,
-lists every spelling/grammar/punctuation mistake with a correction, and says them out loud.
+Say "hey Redline check this text": the camera photographs the writing and Gemini finds the mistakes.
+Hold a page, whiteboard, or screen under the camera, and Redline reads it, lists every
+spelling/grammar/punctuation mistake with a correction, and says them out loud. Say its name
+on its own ("Redline") and it will take that as "take a look at this".
 
 Setup:
     pip install -r requirements.txt
     .env needs GEMINI_API_KEY and ELEVENLABS_API_KEY (one per line, no spaces or quotes)
 
 Run:
-    python solve.py                # hands-free: listen, then say "hey robot check this text"
+    python solve.py                # hands-free: listen, then say "hey Redline check this text"
     python solve.py --manual       # no voice: press Enter to take the photo
     python solve.py --image p.jpg  # skip the camera and check a photo you already have
     python solve.py --preview      # live camera window to line up the writing (s = save, q = quit)
@@ -16,7 +18,7 @@ Run:
     python solve.py --no-speak     # find mistakes silently
     python solve.py --paper letter     # say the sheet is Letter, not A4 (default: guess)
 
-The robot speaks the result (ElevenLabs), e.g. "I found three mistakes: 'recieve' should be
+Redline speaks the result (ElevenLabs), e.g. "I found three mistakes: 'recieve' should be
 'receive', and two comma fixes." It also mutters while it works ("Hmm, reading this...").
 Speech runs on a background thread, so the talking never holds up the next photo.
 
@@ -26,14 +28,15 @@ lines of ink, and turns "line 3, character 10" into exact inches from the top-le
 the page. Every mistake is printed with its position, and the marked page is saved to
 last_marked.jpg. That is the map the arm needs to go and point at the mistake.
 
-In voice mode, say "hey robot check this text" (or "proofread this", "check my grammar") to trigger
-a photo. Say "goodbye" or press Ctrl+C to quit.
+In voice mode, say "hey Redline check this text" (or "proofread this", "check my grammar") to
+trigger a photo. Just saying the name works too. Say "goodbye" or press Ctrl+C to quit.
 """
 import argparse
 import io
 import os
 import queue
 import random
+import re
 import sys
 import threading
 import time
@@ -48,6 +51,16 @@ from pydantic import BaseModel, Field
 
 import layout as pagemap
 
+# Redline's identity. Everything it says out loud is in character.
+NAME = "Redline"
+TAGLINE = "the robot that marks your paper"
+BANNER = "\n".join([
+    "=" * 58,
+    f"  {NAME.upper()}  -  {TAGLINE}",
+    "  photo -> Gemini -> every mistake marked, to the inch",
+    "=" * 58,
+])
+
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 # If the preferred model is busy (503) or out of quota (429), fall back to these in order.
 MODEL_FALLBACKS = ("gemini-3.7-flash", "gemini-flash-latest", "gemini-2.5-flash")
@@ -56,10 +69,22 @@ VOICE_ID = os.getenv("ELEVEN_VOICE_ID", "JBFqnCBsd6RMkjVDRZzb")
 TTS_MODEL = os.getenv("ELEVEN_TTS_MODEL", "eleven_flash_v2_5")
 TTS_SAMPLE_RATE = 24000  # matches output_format="pcm_24000"
 
-# What the robot mutters while it works, so the wait doesn't feel dead.
-NARRATE_LOOK = ("Let me take a look.", "Okay, let me have a look.", "Hold on, taking a photo.")
+# What Redline mutters while it works, so the wait doesn't feel dead.
+NARRATE_HELLO = (
+    f"{NAME} ready. Hold your writing under the camera and say, hey {NAME}, check this text.",
+    f"Hey, {NAME} here. Put a page in front of me and say, hey {NAME}, check this text.",
+)
+NARRATE_LOOK = (f"{NAME} here - let me take a look.", "Okay, let me have a look.", "Hold on, taking a photo.")
 NARRATE_SCAN = ("Hmm, reading this...", "Okay, scanning for mistakes...", "Let me proofread this...")
-NARRATE_LOCATED = ("I know where each one is on the page.", "I've worked out where they sit on the page.")
+NARRATE_LOCATED = (
+    "I know where each one is on the page.",
+    "I've worked out where they sit on the page.",
+    f"{NAME} has the marks ready.",
+)
+NARRATE_BYE = (
+    f"{NAME} signing off. Happy writing!",
+    f"Okay, that's enough marking for now. {NAME} out.",
+)
 
 SAMPLE_RATE = 16000
 BLOCK_MS = 30
@@ -82,8 +107,9 @@ Transcribe it, then check it like a careful proofreader. Report:
   The line and char are used to point at the mistake on the page, so count them carefully
   against your own transcription.
 - corrected: the full writing with every mistake fixed and nothing else changed.
-- spoken: one short, friendly sentence a robot would say out loud, naming the most important
-  mistakes, e.g. "I found three mistakes: 'recieve' should be 'receive', and two comma fixes."
+- spoken: one short, friendly sentence Redline (a desktop robot proofreader) would say out loud,
+  naming the most important mistakes, e.g. "I found three mistakes: 'recieve' should be 'receive',
+  and two comma fixes."
   If the writing is clean, say it looks good instead. Never mention line numbers or coordinates.
 
 Only report a mistake you are confident about; ignore matters of taste unless they are clear errors.
@@ -107,8 +133,19 @@ CHECK_PHRASES = (
     "check for mistakes",
     "mistakes",
     "grammar",
+    "check this",
+    "check this page",
+    "check this paper",
+    "check the page",
+    "mark this",
+    "mark my paper",
+    "mark this up",
+    "mark it up",
 )
 QUIT_PHRASES = ("quit", "exit", "goodbye", "stop listening")
+# Hearing its own name is enough. Speech-to-text spells "Redline" loosely, so compare the
+# letters only: "Redline", "Red Line!", "red-line" and "read line" all count.
+NAME_SPELLINGS = ("redline", "redlion", "readline")
 
 
 # ------------------------------------------------------------- review shape
@@ -338,10 +375,17 @@ def check_text(image_bytes, mime_type, api_key):
 
 # ------------------------------------------------------------------- voice
 def parse_command(text):
-    """Turn what was heard into 'check', 'quit', or None."""
+    """Turn what was heard into 'check', 'quit', or None.
+
+    Saying Redline's name is a command in itself: "Redline, have a look at this." beats
+    remembering an exact phrase at demo time.
+    """
     t = text.lower()
     if any(p in t for p in QUIT_PHRASES):
         return "quit"
+    letters_only = re.sub(r"[^a-z]", "", t)  # "Red Line!" -> "redline"
+    if any(spelling in letters_only for spelling in NAME_SPELLINGS):
+        return "check"
     if any(w in t for w in CHECK_PHRASES):
         return "check"
     return None
@@ -432,7 +476,7 @@ class Speaker:
         text = (text or "").strip()
         if not text:
             return
-        print(f"[robot says] {text}")
+        print(f"[{NAME} says] {text}")
         if self.client:
             self.queue.put(text)
 
@@ -482,13 +526,16 @@ def voice_loop(gemini_key, eleven_key, camera_index, settle_s=1.5, burst_s=1.5, 
 
     eleven = ElevenLabs(api_key=eleven_key)
     speaker = Speaker(eleven_key, enabled=speak)
+    if speak:  # say hello before the mic opens, so Redline doesn't hear its own greeting
+        speaker.say(random.choice(NARRATE_HELLO))
+        speaker.wait()
     try:
         with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16", blocksize=BLOCK) as stream:
             print("Calibrating the microphone. Stay quiet for a second...")
             levels = [rms(stream.read(BLOCK)[0][:, 0]) for _ in range(33)]
             detector = UtteranceDetector(threshold=max(400.0, 3 * float(np.mean(levels))))
-            print('Listening. Say "hey robot check this text" when the writing is under the camera.')
-            print('(Say "goodbye" or press Ctrl+C to quit.)\n')
+            print(f'Listening. Say "hey {NAME} check this text" when the writing is under the camera.')
+            print(f'(Just "{NAME}" works too. Say "goodbye" or press Ctrl+C to quit.)\n')
 
             while True:
                 audio = detector.feed(stream.read(BLOCK)[0][:, 0])
@@ -505,6 +552,8 @@ def voice_loop(gemini_key, eleven_key, camera_index, settle_s=1.5, burst_s=1.5, 
 
                 command = parse_command(text)
                 if command == "quit":
+                    speaker.say(random.choice(NARRATE_BYE))
+                    speaker.wait()
                     print("Bye!")
                     return
                 if command == "check":
@@ -514,8 +563,10 @@ def voice_loop(gemini_key, eleven_key, camera_index, settle_s=1.5, burst_s=1.5, 
                     if stream.read_available:
                         stream.read(stream.read_available)
                     detector.reset()
-                    print('\nListening again. Say "hey robot check this text" for another page.\n')
+                    print(f'\nListening again. Say "hey {NAME} check this text" for another page.\n')
     except KeyboardInterrupt:
+        speaker.say(random.choice(NARRATE_BYE))
+        speaker.wait()
         print("\nBye!")
 
 
@@ -560,7 +611,10 @@ def report(image_bytes, mime_type, gemini_key, speaker=None, dpi=pagemap.DEFAULT
 # -------------------------------------------------------------------- main
 def main():
     load_dotenv()
-    parser = argparse.ArgumentParser(description="Photo of some writing -> Gemini finds the mistakes")
+    print(BANNER)
+    parser = argparse.ArgumentParser(
+        description=f"{NAME} - {TAGLINE}: a photo of some writing -> Gemini finds the mistakes"
+    )
     parser.add_argument("--image", help="use this photo instead of the webcam")
     parser.add_argument("--camera", type=int, default=0, help="webcam index (default 0)")
     parser.add_argument("--preview", action="store_true", help="show a live camera window and exit")
