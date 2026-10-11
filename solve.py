@@ -24,7 +24,8 @@ Where is the mistake? A page has a consistent structure - margins, line spacing,
 pitch - so [layout.py](layout.py) flattens the sheet found in the photo, measures the real
 lines of ink, and turns "line 3, character 10" into exact inches from the top-left corner of
 the page. Every mistake is printed with its position, and the marked page is saved to
-last_marked.jpg. That is the map the arm needs to go and point at the mistake.
+last_marked.jpg while the listing itself is saved to last_report.txt - that is the map
+[writer.py](writer.py) uses to take the pen to each mistake.
 
 In voice mode, say "hey robot check this text" (or "proofread this", "check my grammar") to trigger
 a photo. Say "goodbye" or press Ctrl+C to quit.
@@ -64,6 +65,9 @@ NARRATE_LOCATED = ("I know where each one is on the page.", "I've worked out whe
 SAMPLE_RATE = 16000
 BLOCK_MS = 30
 BLOCK = SAMPLE_RATE * BLOCK_MS // 1000
+
+# Where the listing is saved, so writer.py can walk the arm to each mistake.
+REPORT_FILE = "last_report.txt"
 
 PROMPT = """The photo shows a piece of writing: handwriting or print on paper, a whiteboard, or a screen.
 It may be prose, an essay, notes, a message, a caption, or a list.
@@ -547,7 +551,11 @@ def report(image_bytes, mime_type, gemini_key, speaker=None, dpi=pagemap.DEFAULT
         print(f"[Gemini request failed: {exc}]")
         return None
     sheet, fitted = locate_mistakes(image_bytes, review, dpi=dpi, paper=paper)
-    print(format_review(review, fitted))
+    listing = format_review(review, fitted)
+    print(listing)
+    # Save exactly what was printed: writer.py walks these positions with the pen.
+    Path(REPORT_FILE).write_text(listing + "\n")
+    print(f"(saved to {REPORT_FILE} - walk the mistakes with: python writer.py {REPORT_FILE})")
     if sheet is not None:
         mark_page(sheet, review, fitted)
     if speaker:
