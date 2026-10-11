@@ -1,8 +1,8 @@
-"""Text layout mapping model: turn "line 3, character 10" into inches on the page.
+"""Redline's text layout mapping model: turn "line 3, character 10" into inches on the page.
 
 A sheet of paper has a consistent structure - margins, line spacing and character
 pitch - so a text position can be converted into an exact (x, y) point on the page.
-That is what tells the robot *where* a mistake is, not just that one exists.
+That is what tells Redline *where* a mistake is, not just that one exists.
 
 Two halves:
 
