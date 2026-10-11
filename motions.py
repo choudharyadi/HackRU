@@ -49,7 +49,7 @@ CORNERS = {
 # --------------------------------------------------------------- the motions
 # One printed character on the page, as a share of the sheet's width: the
 # report walks 0.44 -> 0.89 of the page over 20 characters (0.0222 each).
-CHAR_FRAC = 0.02
+CHAR_FRAC = 0.025
 # How far below the reported word the stroke sits (share of the page height).
 UNDERLINE_DROP = 0.25
 
@@ -67,15 +67,15 @@ def box(x, y, w, h):
 
 # key -> (label, the points the pen walks, pen down between them)
 MOTIONS = {
-    "1": ('underline "go" -> "went"',      underline(0.38, 0.43, "go")),
-    "2": ('underline "buyed" -> "bought"', underline(0.69, 0.08, "buyed")),
-    "3": ('underline "apple" -> "apples"', underline(0.13, 0.21, "apple")),
-    "4": ('underline "knew" -> "know"',    underline(0.51, 0.21, "knew")),
-    "5": ('underline "has" -> "had"',      underline(0.45, 0.33, "has")),
+    "1": ('underline "go" -> "went"',      underline(0.40, 0.38, "go")),
+    "2": ('underline "buyed" -> "bought"', underline(0.65, 0.37, "buyed")),
+    "3": ('underline "apple" -> "apples"', underline(0.23, 0.46, "apple")),
+    "4": ('underline "knew" -> "know"',    underline(0.46, 0.46, "knew")),
+    "5": ('underline "has" -> "had"',      underline(0.44, 0.57, "has")),
     "6": ('underline "Their" -> "There"',  underline(0.02, 0.46, "Their")),
     "7": ('underline "was" -> "were"',     underline(0.15, 0.46, "was")),
-    "8": ('underline "eveent" -> "event"', underline(0.04, 0.72, "eveent")),
-    "9": ('box around "Their was"',        box(0.01, 0.43, 0.44, 0.13)),
+    "8": ('underline "eveent" -> "event"', underline(0.34, .89, "eveent")),
+    "9": ('box around "Their was"',        underline(0.34, .89, "Their was")),
 }
 
 SHEET = None

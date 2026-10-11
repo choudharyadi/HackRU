@@ -129,7 +129,7 @@ def check_calibration():
 
     # Second point: the pen hovering over that same corner fixes the travel height.
     assert page.hover is None
-    assert page.z_travel == REF[2] + writer.PEN_DROP, "no hover point -> PEN_DROP above the paper"
+    assert page.z_travel == REF[2] + writer.PEN_TRAVEL, "no hover point -> PEN_TRAVEL above the paper"
     assert page.calibrate_hover(0.4), "hovering above the paper should be accepted"
     assert page.z_travel == 0.4 and page.z_mark == REF[2], (page.z_travel, page.z_mark)
     assert not page.calibrate_hover(REF[2]), "a hover at or below the paper must be refused"
@@ -155,7 +155,7 @@ def check_calibration():
     assert len(sent) == 3, f"the accuracy tap should be fly/down/up, got {len(sent)} moves"
     want = tapped.xy(0.0, 0.0)
     assert abs(sent[0][0] - want[0]) < 1e-9 and abs(sent[0][1] - want[1]) < 1e-9, sent
-    z_up = REF[2] + writer.PEN_DROP
+    z_up = REF[2] + writer.PEN_TRAVEL
     assert [p[2] for p in sent] == [z_up, REF[2], z_up], sent
     print(f"calibration: taps the page origin at arm ({want[0]:.2f}, {want[1]:.2f}) - "
           f"pen {sent[0][2]:.2f} -> {sent[1][2]:.2f} -> {sent[2][2]:.2f}")
@@ -292,7 +292,7 @@ def check_keys():
         origin = page.xy(0.0, 0.0)
         assert abs(sent[0][0] - origin[0]) < 1e-9 and abs(sent[0][1] - origin[1]) < 1e-9, \
             f"P's accuracy tap should fly to the page origin, went to {sent[0][:2]}"
-        assert sent[0][2] == REF[2] + writer.PEN_DROP and sent[1][2] == REF[2], sent[:3]
+        assert sent[0][2] == REF[2] + writer.PEN_TRAVEL and sent[1][2] == REF[2], sent[:3]
         for i, m in enumerate(page.marks):
             fly, down, up = sent[3 + 3 * i:3 + 3 * i + 3]
             assert fly[2] == 0.4 and up[2] == 0.4 and down[2] == REF[2], \

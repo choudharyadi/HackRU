@@ -1,25 +1,33 @@
 Found 8 mistake(s):
-  1. "go" -> "went"  (grammar: past tense required for past narrative)
+  1. "go" -> "went"  (grammar: past tense required)
       in: "Yesterday, the boy go to the store and buyed"
-      position: line 1, char 20 -> 5.20 in from the left, 0.65 in down (0.44, 0.08 of the page)
-  2. "buyed" -> "bought"  (grammar: irregular past tense of 'buy' is 'bought')
-      in: "the store and buyed some apple"
-      position: line 1, char 40 -> 10.40 in from the left, 0.65 in down (0.89, 0.08 of the page)
-  3. "apple" -> "apples"  (grammar: plural noun needed after 'some')
+      position: line 1, char 20 -> 6.04 in from the left, 0.65 in down (0.52, 0.08 of the page)
+  2. "buyed" -> "bought"  (grammar: irregular past tense of buy is bought)
+      in: "Yesterday, the boy go to the store and buyed"
+      position: line 1, char 40 -> 10.55 in from the left, 0.65 in down (0.90, 0.08 of the page)
+  3. "apple" -> "apples"  (grammar: plural noun required after 'some')
       in: "some apple. He didn't knew that the shop was"
-      position: line 2, char 6 -> 1.56 in from the left, 1.71 in down (0.13, 0.21 of the page)
-  4. "knew" -> "know"  (grammar: base verb form follows auxiliary 'didn't')
-      in: "He didn't knew that the shop was"
-      position: line 2, char 23 -> 5.98 in from the left, 1.71 in down (0.51, 0.21 of the page)
-  5. "has" -> "had"  (grammar: past tense needed for consistency)
+      position: line 2, char 6 -> 2.88 in from the left, 1.71 in down (0.25, 0.21 of the page)
+  4. "knew" -> "know"  (grammar: base form of verb follows 'didn't')
+      in: "some apple. He didn't knew that the shop was"
+      position: line 2, char 23 -> 6.72 in from the left, 1.71 in down (0.57, 0.21 of the page)
+  5. "has" -> "had"  (grammar: past tense required for consistency)
       in: "closing early, so he has to wait outside for his"
-      position: line 3, char 22 -> 5.25 in from the left, 2.76 in down (0.45, 0.33 of the page)
-  6. "Their" -> "There"  (word choice: use 'there' for existence or place)
-      in: "Their was many people waiting too, but"
-      position: line 4, char 1 -> 0.25 in from the left, 3.82 in down (0.02, 0.46 of the page)
+      position: line 3, char 22 -> 6.09 in from the left, 2.76 in down (0.52, 0.33 of the page)
+  6. "Their" -> "There"  (word choice: existential 'there' needed here)
+      in: "friend. Their was many people waiting too, but"
+      position: line 4, char 9 -> 3.48 in from the left, 3.82 in down (0.30, 0.46 of the page)
   7. "was" -> "were"  (grammar: plural verb needed to agree with 'many people')
-      in: "Their was many people waiting too, but"
-      position: line 4, char 7 -> 1.74 in from the left, 3.82 in down (0.15, 0.46 of the page)
-  8. "eveent" -> "event"  (spelling: misspelled word)
+      in: "friend. Their was many people waiting too, but"
+      position: line 4, char 15 -> 4.77 in from the left, 3.82 in down (0.41, 0.46 of the page)
+  8. "eveent" -> "event"  (spelling: spelled with a single 'e')
       in: "eveent for him."
-      position: line 6, char 1 -> 0.51 in from the left, 5.92 in down (0.04, 0.72 of the page)
+      position: line 6, char 1 -> 1.98 in from the left, 5.92 in down (0.17, 0.72 of the page)
+
+Corrected:
+Yesterday, the boy went to the store and bought
+some apples. He didn't know that the shop was
+closing early, so he had to wait outside for his
+friend. There were many people waiting too, but
+everyone was very patient. This was a new
+event for him.

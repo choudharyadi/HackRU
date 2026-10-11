@@ -17,7 +17,7 @@ Two steps:
           top-left corner - so one dot tells you if the mapping is accurate.
        H  pen HOVERING over that same corner, at the height you want it to fly
           between marks (lift with W).  That fixes the travel height.  Skip H and
-          it travels PEN_DROP (0.25") above the surface it touched.
+          it travels PEN_TRAVEL above the surface it touched.
 
   2. TOUR.  Press T: the arm flies over each mistake at the hover height, drops the
      pen to the touched surface, lifts straight back up, and goes on to the next
@@ -86,8 +86,8 @@ LEVEL_OFFSET = 0.0
 
 # --- drawing ---
 JOG_STEP = 0.06                # inches per jog tap
-PEN_TRAVEL = 0.40             # pen-up height when travelling between marks (higher lift)
-PEN_DRAW = 0.35                # pen-down press when drawing a mark (a bit more than travel)
+PEN_TRAVEL = 0.35             # pen-up height when travelling between marks (higher lift)
+PEN_DRAW = 0.36                # pen-down press when drawing a mark (a bit more than travel)
 LINE_LEN = 3.0                 # straight segment length, inches (in +X)
 X_SPAN = 3.0                  # X width of the X, inches
 X_HEIGHT = 2.0                # Y height of the X, inches (centered on start)
