@@ -1,0 +1,18 @@
+# Secrets - never commit these
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Generated capture/report artifacts
+last_capture.jpg
+last_marked.jpg
+last_report.txt
+
+# OS / editor
+.DS_Store
